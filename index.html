@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physics Simulations Portal</title>
+  <style>
+    /* Basic reset and body styling */
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #001a33, #003366);
+      color: #fff;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+    }
+
+    p {
+      font-size: 1.2em;
+      margin-bottom: 40px;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      background-color: #00bfff;
+      color: white;
+      border: none;
+      padding: 20px 30px;
+      font-size: 1.1em;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.3s, background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0099cc;
+      transform: scale(1.05);
+    }
+
+    footer {
+      margin-top: 50px;
+      font-size: 0.9em;
+      color: #cccccc;
+    }
+
+    @media(max-width: 500px) {
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Physics Simulations Portal</h1>
+  <p>Select an experiment to explore:</p>
+
+  <div class="button-container">
+    <button onclick="window.location.href='youngs.html'">
+      Young’s Double Slit Experiment
+    </button>
+    <button onclick="window.location.href='zeeman.html'">
+      Zeeman Effect
+    </button>
+  </div>
+
+  <footer>© 2025 Physics Simulations</footer>
+
+</body>
+</html>

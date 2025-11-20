@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Double-Slit Ray Diagram Visualization</title>
+  <style>
+    body{margin:0;background:#0b1220;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;color:#fff;font-family:sans-serif}
+    canvas{background:#06101f;border:1px solid #2a3550;border-radius:10px;width:90%;max-width:800px;height:400px;display:block}
+    .controls{margin-top:16px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:center}
+    label{font-size:14px}
+    button{background:#7dd3fc;color:#021220;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600}
+  </style>
+</head>
+<body>
+  <canvas id="diagram" width="800" height="400"></canvas>
+  <div class="controls">
+    <label>Screen Distance D (m): <input id="D" type="range" min="0.5" max="2" step="0.1" value="1"> <span id="Dval">1.0</span></label>
+    <label>Slit Separation S (px): <input id="S" type="range" min="20" max="100" step="1" value="60"> <span id="Sval">60</span></label>
+    <button id="observerOff">In Absence of Observer</button>
+    <button id="observerOn">In Presence of Observer</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('diagram');
+    const ctx = canvas.getContext('2d');
+    const D = document.getElementById('D');
+    const Dval = document.getElementById('Dval');
+    const S = document.getElementById('S');
+    const Sval = document.getElementById('Sval');
+    const observerOff = document.getElementById('observerOff');
+    const observerOn = document.getElementById('observerOn');
+
+    let observed = false;
+
+    function draw(){
+      const W = canvas.width = canvas.clientWidth * devicePixelRatio;
+      const H = canvas.height = canvas.clientHeight * devicePixelRatio;
+      ctx.clearRect(0,0,W,H);
+
+      const sourceX = W*0.05;
+      const slitX = W*0.25;
+      const screenX = slitX + D.value*200*devicePixelRatio;
+      const centerY = H/2;
+
+      // Calculate slit offsets based on separation
+      const slitOffsets = [-S.value/2, S.value/2];
+
+      // Draw source
+      ctx.fillStyle = '#ffea00';
+      ctx.beginPath();
+      ctx.arc(sourceX, centerY, 10*devicePixelRatio, 0, 2*Math.PI);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = `${14*devicePixelRatio}px sans-serif`;
+      ctx.fillText('Source', sourceX - 20*devicePixelRatio, centerY - 15*devicePixelRatio);
+
+      // Draw slits
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 2 * devicePixelRatio;
+      slitOffsets.forEach(offset => {
+        ctx.beginPath();
+        ctx.moveTo(slitX, centerY + offset - 20*devicePixelRatio);
+        ctx.lineTo(slitX, centerY + offset + 20*devicePixelRatio);
+        ctx.stroke();
+      });
+      ctx.fillText('Slits', slitX - 40*devicePixelRatio, centerY);
+
+      // Draw rays from source to slits
+      slitOffsets.forEach(offset => {
+        ctx.beginPath();
+        ctx.strokeStyle = observed ? '#7dd3fc' : 'rgba(125,211,252,0.5)';
+        ctx.moveTo(sourceX, centerY);
+        ctx.lineTo(slitX, centerY + offset);
+        ctx.stroke();
+      });
+
+      // Draw screen
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.beginPath();
+      ctx.moveTo(screenX, centerY - 100*devicePixelRatio);
+      ctx.lineTo(screenX, centerY + 100*devicePixelRatio);
+      ctx.stroke();
+      ctx.fillText('Screen', screenX + 10*devicePixelRatio, centerY);
+
+      // Draw rays from slits to screen and wavefronts
+      slitOffsets.forEach(offset => {
+        if(!observed){
+          // Wavefront arcs
+          for(let r=20;r<200;r+=20){
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(125,211,252,0.2)';
+            ctx.arc(slitX, centerY + offset, r, -Math.PI/8, Math.PI/8);
+            ctx.stroke();
+          }
+          // 2 representative rays
+          const rayTargets = [-50,50];
+          rayTargets.forEach(t => {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(125,211,252,0.5)';
+            ctx.moveTo(slitX, centerY + offset);
+            ctx.lineTo(screenX, centerY + t);
+            ctx.stroke();
+          });
+        } else {
+          const rayTargets = [-30,30];
+          rayTargets.forEach(t => {
+            ctx.beginPath();
+            ctx.strokeStyle = '#7dd3fc';
+            ctx.moveTo(slitX, centerY + offset);
+            ctx.lineTo(screenX, centerY + t);
+            ctx.stroke();
+          });
+        }
+      });
+
+      // Draw light pattern on screen
+      const patternHeight = 200 * devicePixelRatio;
+      const numPoints = 300;
+      for(let i=0; i<numPoints; i++){
+        const y = (i/numPoints - 0.5)*patternHeight + centerY;
+        let intensity;
+        if(!observed){
+          const phase = (i/numPoints - 0.5) * Math.PI * 200 / S.value * D.value; // fringe spacing depends on slit separation & screen distance
+          intensity = Math.cos(phase)**2;
+        } else {
+          const yNorm = (i/numPoints - 0.5) * 4;
+          intensity = Math.exp(-((yNorm - 1)**2)*4) + Math.exp(-((yNorm + 1)**2)*4);
+        }
+        const brightness = Math.floor(255 * intensity);
+        ctx.strokeStyle = `rgb(${brightness},${brightness},255)`;
+        ctx.beginPath();
+        ctx.moveTo(screenX, y);
+        ctx.lineTo(screenX + 30*devicePixelRatio, y);
+        ctx.stroke();
+      }
+
+      // Label distance D
+      ctx.strokeStyle = '#94a3b8';
+      ctx.setLineDash([5,5]);
+      ctx.beginPath();
+      ctx.moveTo(slitX, centerY - 120*devicePixelRatio);
+      ctx.lineTo(screenX, centerY - 120*devicePixelRatio);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillText(`D = ${D.value} m`, (slitX+screenX)/2 - 20*devicePixelRatio, centerY - 130*devicePixelRatio);
+    }
+
+    D.addEventListener('input', ()=>{Dval.textContent=D.value; draw();});
+    S.addEventListener('input', ()=>{Sval.textContent=S.value; draw();});
+    observerOff.addEventListener('click', ()=>{observed = false; draw();});
+    observerOn.addEventListener('click', ()=>{observed = true; draw();});
+    window.addEventListener('resize', ()=>{draw();});
+    draw();
+  </script>
+</body>
+</html>

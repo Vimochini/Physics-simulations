@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Zeeman Effect – Normal & Anomalous Simulation</title>
+<style>
+  body{
+    margin:0;
+    background:radial-gradient(circle at top,#001020,#000);
+    color:#eee;
+    font-family:Segoe UI,Roboto,Arial;
+    overflow:hidden;
+  }
+  .controls{
+    position:fixed;
+    left:20px;
+    top:20px;
+    background:rgba(0,0,0,0.6);
+    padding:12px 16px;
+    border-radius:10px;
+    font-size:14px;
+    backdrop-filter:blur(8px);
+    z-index:1000;
+  }
+  label,select,input{
+    display:block;
+    margin:6px 0;
+  }
+  select,input{
+    width:200px;
+    padding:4px;
+    border-radius:6px;
+    border:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.05);
+    color:#fff;
+  }
+  .setup{
+    position:relative;
+    width:95vw;
+    height:500px;
+    margin:100px auto 0;
+    background:linear-gradient(180deg,#000910,#000);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .lamp{
+    position:absolute;
+    left:6%;
+    top:50%;
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    transform:translateY(-50%);
+    box-shadow:0 0 40px 15px var(--lampColor);
+    background:radial-gradient(circle,var(--lampColor),#000);
+  }
+  .lamp::after{
+    content:"Lamp";
+    position:absolute;
+    bottom:-24px;
+    left:12px;
+    font-size:12px;
+  }
+  .magnet{
+    position:absolute;
+    left:25%;
+    width:120px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    top:50%;
+    transform:translateY(-50%);
+  }
+  .pole{
+    width:100px;
+    height:60px;
+    border-radius:10px;
+    margin:12px 0;
+    text-align:center;
+    line-height:60px;
+    font-weight:bold;
+    font-size:18px;
+  }
+  .north{
+    background:#0ff;
+    box-shadow:0 0 20px 6px #0ff;
+    color:#000;
+  }
+  .south{
+    background:#f0f;
+    box-shadow:0 0 20px 6px #f0f;
+    color:#000;
+  }
+  .magnet::after{
+    content:"Electromagnet";
+    position:absolute;
+    bottom:-22px;
+    font-size:12px;
+  }
+  .detector{
+    position:absolute;
+    right:8%;
+    top:50%;
+    transform:translateY(-50%);
+    width:220px;
+    height:140px;
+    border-radius:10px;
+    background:#111;
+    border:2px solid #444;
+    box-shadow:0 0 15px #0f0 inset;
+    overflow:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+  .detector::after{
+    content:"CCD Detector";
+    position:absolute;
+    bottom:-22px;
+    left:10px;
+    font-size:12px;
+  }
+  .lines{
+    position:relative;
+    width:90%;
+    height:90%;
+  }
+  .line{
+    position:absolute;
+    top:15%;
+    height:70%;
+    width:3px;
+    border-radius:4px;
+    box-shadow:0 0 20px 6px;
+    transition:left 0.2s;
+  }
+  canvas{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+  }
+</style>
+</head>
+<body>
+<div class="controls">
+  <label>Element:
+    <select id="element">
+      <option value="H">Hydrogen</option>
+      <option value="Na">Sodium</option>
+      <option value="Cd">Cadmium</option>
+    </select>
+  </label>
+  <label>Magnetic Field (B):
+    <input type="range" id="B" min="0" max="100" value="0">
+  </label>
+</div>
+
+<div class="setup">
+  <canvas id="field"></canvas>
+  <div class="lamp" id="lamp"></div>
+  <div class="magnet">
+    <div class="pole north">N</div>
+    <div class="pole south">S</div>
+  </div>
+  <div class="detector">
+    <div class="lines" id="lines"></div>
+  </div>
+</div>
+
+<script>
+const lamp=document.getElementById('lamp');
+const lines=document.getElementById('lines');
+const field=document.getElementById('field');
+const ctx=field.getContext('2d');
+const elementSel=document.getElementById('element');
+const Bslider=document.getElementById('B');
+
+function resize(){
+  field.width=field.clientWidth;
+  field.height=field.clientHeight;
+}
+window.addEventListener('resize',resize);
+resize();
+
+const data={
+  "H":{lamp:"#ff2020",split:["#ff4040","#ff2020","#ff0070"]}, // normal
+  "Cd":{lamp:"#d0e8ff",split:["#ff4040","#ff8080","#ff0070"]}, // normal
+  "Na":{lamp:"#ffd000",split:["#ffd040","#ffe080","#ffd000","#b4ff70","#fff080","#a8ff90"]} // anomalous
+};
+
+function drawField(){
+  const W=field.width,H=field.height;
+  ctx.clearRect(0,0,W,H);
+  const B=parseFloat(Bslider.value)/100;
+  const el=elementSel.value;
+  const beamColor=data[el].lamp;
+
+  // magnetic field lines
+  for(let i=0;i<12;i++){
+    ctx.beginPath();
+    for(let y=H*0.3;y<H*0.7;y+=4){
+      const x=W*0.25+Math.sin(y*0.03+i+B*5)*10*B;
+      if(y===H*0.3)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=`rgba(120,200,255,${0.1+0.4*B})`;
+    ctx.lineWidth=1.2;
+    ctx.stroke();
+  }
+
+  // glowing light beam
+  const grd=ctx.createLinearGradient(W*0.1,H*0.5,W*0.92,H*0.5);
+  grd.addColorStop(0,beamColor);
+  grd.addColorStop(1,"transparent");
+  ctx.globalAlpha=0.5+0.4*B;
+  ctx.fillStyle=grd;
+  ctx.beginPath();
+  ctx.moveTo(W*0.1,H*0.45);
+  ctx.lineTo(W*0.9,H*0.48);
+  ctx.lineTo(W*0.9,H*0.52);
+  ctx.lineTo(W*0.1,H*0.55);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha=1;
+
+  requestAnimationFrame(drawField);
+}
+drawField();
+
+function update(){
+  const el=elementSel.value;
+  const B=parseFloat(Bslider.value);
+  lamp.style.setProperty('--lampColor',data[el].lamp);
+  lamp.style.background=`radial-gradient(circle,${data[el].lamp},#000)`;
+  lamp.style.boxShadow=`0 0 40px 15px ${data[el].lamp}`;
+
+  lines.innerHTML='';
+  const splitDistance = B * 1.2;
+
+  const colors = data[el].split;
+  const total = colors.length;
+  const center = 50;
+
+  colors.forEach((c,i)=>{
+    const div=document.createElement('div');
+    div.className='line';
+    // line spacing: for normal (3 lines) or anomalous (6 lines)
+    const offset = (i - (total-1)/2) * splitDistance;
+    div.style.left=`calc(${center}% + ${offset}px)`;
+    div.style.background=c;
+    div.style.boxShadow=`0 0 18px ${c},0 0 30px ${c}`;
+    lines.appendChild(div);
+  });
+}
+
+[elementSel,Bslider].forEach(e=>e.addEventListener('input',update));
+update();
+</script>
+</body>
+</html>
